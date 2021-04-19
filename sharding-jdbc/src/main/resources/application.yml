@@ -1,0 +1,67 @@
+spring:
+  # 配置Sharding-JDBC的分片策略
+  shardingsphere:
+    datasource:
+      # 配置数据源，给数据源起名g1,g2...此处可配置多数据源
+      names: g1,g2,u0
+      # 配置数据源具体内容————————包含  连接池，  驱动，             地址，   用户名，    密码
+      # 由于上面配置数据源只有g1因此下面只配置g1.type,g1.driver-class-name,g1.url,g1.username,g1.password
+      g1:
+        type: com.alibaba.druid.pool.DruidDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://localhost:3306/goods_db_1?characterEncoding=utf-8&useUnicode=true&useSSL=false&serverTimezone=UTC
+        username: root
+        password: root123
+      g2:
+        type: com.alibaba.druid.pool.DruidDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://localhost:3306/goods_db_2?characterEncoding=utf-8&useUnicode=true&useSSL=false&serverTimezone=UTC
+        username: root
+        password: root123
+      u0:
+        type: com.alibaba.druid.pool.DruidDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://localhost:3306/user_db?characterEncoding=utf-8&useUnicode=true&useSSL=false&serverTimezone=UTC
+        username: root
+        password: root123
+    sharding:
+      tables:
+        #配置垂直分库t_user的策略
+        t_user:
+          actual-data-nodes: u0.t_user
+          key-generator:
+            column: user_id
+            type: SNOWFLAKE
+          table-strategy:
+            inline:
+              sharding-column: user_id
+              algorithm-expression: t_user
+        goods:
+          # 配置表的分布，表的策略
+          #actual-data-nodes: g1.goods_$->{1..2}
+          actual-data-nodes: g$->{1..2}.goods_$->{1..2}
+          # 指定goods表 主键gid 生成策略为 SNOWFLAKE
+          key-generator:
+            column: gid
+            type: SNOWFLAKE
+          database-strategy:
+            inline:
+              sharding-column: user_id
+              algorithm-expression: g$->{user_id % 2 + 1}
+          table-strategy:
+            inline:
+              sharding-column: gid
+              algorithm-expression: goods_$->{gid % 2 + 1}
+        t_dict:
+          # 指定表 主键gid 生成策略为 SNOWFLAKE
+          key-generator:
+            column: dict_id
+            type: SNOWFLAKE
+      # 配置公共表
+      broadcast-tables: t_dict
+      # 配置公共表ID及生成策略
+
+    props:
+      sql:
+        show: true
+
